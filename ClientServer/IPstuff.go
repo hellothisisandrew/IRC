@@ -6,23 +6,21 @@ import (
 	"net"
 	"net/http"
 )
-
-type IP struct{ Query string }
-
+type IP struct { Query string }
 //This function gets the IP address of the local machine
 func getLocalIP() string {
 
-	/*	conn, err := net.Dial("udp", "8.8.8.8:80")  //Dial your machine
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
+/*	conn, err := net.Dial("udp", "8.8.8.8:80")  //Dial your machine
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
 
-		localAddr := conn.LocalAddr().(*net.UDPAddr) //get the local address
+	localAddr := conn.LocalAddr().(*net.UDPAddr) //get the local address
 
-		return localAddr.IP.String()
+	return localAddr.IP.String()
 
-	*/
+ */
 	req, err := http.Get("http://ip-api.com/json/")
 	if err != nil {
 		return err.Error()

@@ -1,7 +1,11 @@
 package Messages
 
 //This file contains all the operation codes and error codes
-const IRC_PORT string = "7734"
+//As well as error handling stuff
+const IRC_PORT string = "7734" //Standard port for IRC
+
+
+
 
 const IRC_OPCODE_ERR uint32 = 0x10000001
 const IRC_OPCODE_KEEPALIVE uint32 = 0x10000002
@@ -26,3 +30,11 @@ const IRC_ERR_ILLEGALNAME uint32 = 0x20000006
 const IRC_ERR_ILLEGALMESSAGE uint32 = 0x20000007
 const IRC_ERR_TOOMANYUSERS uint32 = 0x20000008
 const IRC_ERR_TOOMANYROOMS uint32 = 0x20000009
+
+const ERRORCODEBASENUM uint32 = 0x20000000
+
+//GetCurrentVersion returns the current version
+func GetCurrentVersion() []uint8 {
+	var currentVersion [4]uint8 = [4]uint8{0xFA, 0xCE, 0x0F, 0xF1}
+	return currentVersion[:] //return as slice
+}
