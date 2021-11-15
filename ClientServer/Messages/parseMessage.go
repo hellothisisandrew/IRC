@@ -5,6 +5,7 @@ import "errors"
 
 //This is what will be returned from every
 //parse function
+//All messages go in text all error codes in numerical if more than one label then  list gets the other label in [0].
 type parsed struct {
 	text string	//Used for storing Messages
 	numerical uint32 //Used for storing numbers
@@ -32,17 +33,21 @@ func Parse(packet ircPacket) (*parsed, uint32, error) {
 	case IRC_OPCODE_JOINROOM:
 		return parseJoinLeaveRoom(packet.getPayload())
 	case IRC_OPCODE_LEAVEROOM:
-		parseJoinLeaveRoom(packet.getPayload())
+		return parseJoinLeaveRoom(packet.getPayload())
 	case IRC_OPCODE_SENDMSG:
-		parseSendMessage(packet.getPayload())
+		return parseSendMessage(packet.getPayload())
 	case IRC_OPCODE_SENDPRIVMSG:
-		parseSendMessage(packet.getPayload())
-
-
-
-
+		return parseSendMessage(packet.getPayload())
+	case IRC_OPCODE_USERSRESP:
+		return parseListResp(packet.getPayload(),true)
+	case IRC_OPCODE_LISTROOMSRESP:
+		return parseListResp(packet.getPayload(),false)
+	case IRC_OPCODE_TELLMSG:
+		return parseForwardMessage(packet.getPayload(), false)
+	case IRC_OPCODE_TELLPRIVMSG:
+		return parseForwardMessage(packet.getPayload(),true)
 	default:
-		return nil, IRC_ERR_ILLEGALOPCODE, errors.New("invalid opcode or format")
+		return nil, IRC_ERR_ILLEGALOPCODE, errors.New("invalid opcode or format") //Default goes to invlaid if not picked up by the list
 	}
 
 }
@@ -116,7 +121,7 @@ func parseSendMessage(payload []uint8) (*parsed, uint32, error) {
 	err = checkMessage(text)
 	err1 := checkTerminators(payload[20:])
 	//Check message for error
-	if err != || err1 != nil {
+	if err != nil || err1 != nil {
 		return nil, IRC_ERR_ILLEGALMESSAGE, err
 	}
 
@@ -127,15 +132,15 @@ func parseSendMessage(payload []uint8) (*parsed, uint32, error) {
 
 //parseListResp parses the list response packet type
 //Set room reqest to true if looking for a list of rooms
-func parseListResp(payload []uint8, isRoomRequest bool) (*parsed, uint32, error){
+func parseListResp(payload []uint8, isUserRequest bool) (*parsed, uint32, error){
 	ident := "" //label identity
 	shift := 0 //This shifts where the list starts
 	listUR := []string{}
 
-	if isRoomRequest {
+	if isUserRequest {
 		identifer, err := extractLabel(payload[:20]) //extract the label
 		if err != nil {
-			return *, IRC_ERR_ILLEGALNAME, err
+			return nil , IRC_ERR_ILLEGALNAME, err
 		}
 		ident = identifer
 		shift = 20
@@ -143,12 +148,48 @@ func parseListResp(payload []uint8, isRoomRequest bool) (*parsed, uint32, error)
 	//Loop over
 	listIndex := 0 //for the new list array
 	for i := shift; len(payload[shift:]) > i; i += 20 { 		//Check multiples of 20
-			list[listIndex] = string(payload[i: i + 20])
-			if err := checkLabel(list[listIndex]); err != nil {
+			listUR[listIndex] = string(payload[i: i + 20])
+			if err := checkLabel(listUR[listIndex]); err != nil {
 				return nil, IRC_ERR_UNKNOWN, errors.New("one or more illegal names in list")
 			}
 	}
 	return &parsed{list: listUR, label: ident}, 0, nil //Return the the identity and the
+
+}
+//parseForwardMessage informs a user a message has been sent to room if TELL_MSG
+//If TELL_PRV_ then it is a private message that needs to be forwarded
+//this is kind of gross
+func parseForwardMessage(payload []uint8, private bool ) (*parsed, uint32 ,error) {
+	target := ""
+	sender := [...]string{""} //This is gross design
+	msg := []uint8{}
+
+	//Set the private ----------------make this less ugly
+	if private {
+		var err, err1 error
+		target, err = extractLabel(payload[:20])
+		sender[0], err1 = extractLabel(payload[20:40])
+		msg = payload[40:]
+		if err1 != nil || err != nil {
+			return nil, IRC_ERR_ILLEGALNAME, err1
+		}
+	}else {
+		var err error
+		target , err = extractLabel(payload[:20])
+		msg = payload[20:]
+		if err != nil {
+			return nil, IRC_ERR_ILLEGALNAME, err
+		}
+	}
+
+	if err := checkTerminators(msg); err != nil {
+		return nil, IRC_ERR_ILLEGALMESSAGE, err
+	}
+	if err := checkMessage(string(msg)); err != nil {
+		return nil, IRC_ERR_ILLEGALMESSAGE, err
+	}
+
+	return &parsed{text: string(msg), label: target, list: sender[:]}, 0, nil
 
 }
 
@@ -181,6 +222,7 @@ func checkTerminators(msg []uint8) error {
 			return errors.New("illegal message")
 		}
 	}
+	return nil
 }
 
 //extractLabel extracts the label from an array and returns its string version

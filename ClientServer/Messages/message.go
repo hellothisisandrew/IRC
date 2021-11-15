@@ -24,10 +24,10 @@ type ircPacket struct {
 
 //CreatePacket Passes in needed header and setup payload size
 func (i *ircPacket) CreatePacket(header Header) {
-
 	i.header = header //Set header to header
 	i.payload = make([]uint8,header.length) //make a slice payload of size header length
 }
+
 
 //This function sets the payload
 func (i *ircPacket) appendPayload(payload []uint8) {
@@ -49,6 +49,15 @@ func (i *ircPacket) opCode () uint32 {
 func (i *ircPacket) getPayload() []uint8 {
 	return i.payload
 }
+
+
+
+
+
+
+
+
+
 //Valid function determines if the function is valid
 //Implment later
 /*

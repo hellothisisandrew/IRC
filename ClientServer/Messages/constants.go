@@ -33,7 +33,7 @@ const IRC_ERR_TOOMANYROOMS uint32 = 0x20000009
 
 const ERRORCODEBASENUM uint32 = 0x20000000
 
-//GetCurrentVersion returns the current version
+//GetCurrentVersion returns the current version of this protocol
 func GetCurrentVersion() []uint8 {
 	var currentVersion [4]uint8 = [4]uint8{0xFA, 0xCE, 0x0F, 0xF1}
 	return currentVersion[:] //return as slice
